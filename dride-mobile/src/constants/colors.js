@@ -1,0 +1,17 @@
+export const Colors = {
+  verde:         '#1D9E75',
+  verdeOscuro:   '#0A2A1E',
+  verdeMedio:    '#0F6E56',
+  menta:         '#9FE1CB',
+  verdeClaro:    '#E1F5EE',
+  blanco:        '#FFFFFF',
+  gris1:         '#F8F8F6',
+  gris2:         '#E5E5E3',
+  textoPrimario: '#2C2C2A',
+  textoSecundario: '#5F5E5A',
+  textoMuted:    '#888780',
+  exito:         '#1D9E75',
+  error:         '#D85A30',
+  advertencia:   '#BA7517',
+  whatsapp:      '#25D366',
+}
