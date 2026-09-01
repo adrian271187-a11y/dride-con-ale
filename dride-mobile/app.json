@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "D'RIDE CON ALE",
+    "slug": "dride-con-ale",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "dride",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A2A1E"
+    },
+    "ios":     { "supportsTablet": false, "bundleIdentifier": "com.drideconale.app" },
+    "android": { "adaptiveIcon": { "foregroundImage": "./assets/images/adaptive-icon.png", "backgroundColor": "#0A2A1E" }, "package": "com.drideconale.app" },
+    "plugins": ["expo-router", "expo-image-picker", "expo-notifications"]
+  }
+}
