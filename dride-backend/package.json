@@ -1,6 +1,7 @@
 {
   "name": "dride-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "D'RIDE CON ALE — API Backend (Railway)",
   "main": "src/index.js",
   "scripts": {
