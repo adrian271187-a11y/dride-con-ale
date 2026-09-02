@@ -20,17 +20,23 @@ import AdminRoute     from '@/components/layout/AdminRoute'
 
 export default function App() {
   const { loading } = useAuth()
-  if (loading) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#1D9E75' }}>Cargando...</div>
+  if (loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'#1D9E75' }}>Cargando...</div>
+
   return (
     <Routes>
-      <Route path="/login"    element={<Login />} />
-      <Route path="/registro" element={<Registro />} />
+      {/* Públicas — sin login */}
+      <Route path="/"            element={<ExploraPaquetes />} />
+      <Route path="/paquete/:id" element={<DetallePaquete />} />
+      <Route path="/login"       element={<Login />} />
+      <Route path="/registro"    element={<Registro />} />
+
+      {/* Cliente autenticado */}
       <Route element={<PrivateRoute />}>
-        <Route path="/"                 element={<ExploraPaquetes />} />
-        <Route path="/paquete/:id"      element={<DetallePaquete />} />
         <Route path="/mis-reservas"     element={<MisReservas />} />
         <Route path="/confirmacion/:id" element={<Confirmacion />} />
       </Route>
+
+      {/* Admin */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index                 element={<Dashboard />} />
@@ -43,7 +49,8 @@ export default function App() {
           <Route path="notificaciones" element={<Notificaciones />} />
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/login" replace />} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
