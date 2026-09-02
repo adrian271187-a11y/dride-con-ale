@@ -1,15 +1,6 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    type: 'OAuth2',
-    user: process.env.GMAIL_USER,
-    clientId: process.env.GMAIL_CLIENT_ID,
-    clientSecret: process.env.GMAIL_CLIENT_SECRET,
-    refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-  },
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function enviarConfirmacion({ destinatario, nombre, reserva, paquete }) {
   const html = `
@@ -20,7 +11,7 @@ export async function enviarConfirmacion({ destinatario, nombre, reserva, paquet
       </div>
       <div style="background:#E1F5EE;padding:24px;text-align:center;">
         <h2 style="color:#0A2A1E;margin:0 0 8px;">¡Reserva confirmada, ${nombre}!</h2>
-        <p style="color:#0F6E56;margin:0;">Tu pago fue verificado y tu lugar está asegurado.</p>
+        <p style="color:#0F6E56;margin:0;">Tu lugar está asegurado.</p>
       </div>
       <div style="padding:20px;background:#fff;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -41,8 +32,8 @@ export async function enviarConfirmacion({ destinatario, nombre, reserva, paquet
       </div>
     </div>`
 
-  return transporter.sendMail({
-    from: `"D'RIDE CON ALE" <${process.env.GMAIL_USER}>`,
+  return resend.emails.send({
+    from: "D'RIDE CON ALE <onboarding@resend.dev>",
     to: destinatario,
     subject: `✅ Tu reserva ${reserva.codigo} está confirmada — D'RIDE CON ALE`,
     html,
