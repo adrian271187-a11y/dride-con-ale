@@ -12,19 +12,49 @@ const generarLinkWA = (telefono, mensaje) => {
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
 }
 
-const mensajeWACreada = (reserva) =>
-  `Hola ${reserva.clienteNombre} 👋\n\nRecibimos tu solicitud de reserva en *D'RIDE CON ALE* 🌿\n\n📦 *Paquete:* ${reserva.paqueteNombre}\n📅 *Fecha:* ${reserva.fecha}\n👥 *Personas:* ${reserva.personas}\n💰 *Total:* $${reserva.total}\n\nTu reserva está *pendiente de confirmación*. Pronto te contactaremos. 🙏`
+const mensajeWACreada = (r) =>
+  `Hola ${r.nombre} 👋\n\nRecibimos tu solicitud de reserva en *D'RIDE CON ALE* 🌿\n\n📦 *Paquete:* ${r.paqueteNombre}\n📅 *Fecha:* ${r.fechaSalida || ''}\n👥 *Viajeros:* ${r.numViajeros}\n💰 *Total:* $${r.totalPagar}\n\nTu reserva está *pendiente de confirmación*. Pronto te contactaremos. 🙏`
 
-const mensajeWAConfirmada = (reserva) =>
-  `🎉 ¡Hola ${reserva.clienteNombre}!\n\nTu reserva en *D'RIDE CON ALE* ha sido *CONFIRMADA* ✅\n\n📦 *Paquete:* ${reserva.paqueteNombre}\n📅 *Fecha:* ${reserva.fecha}\n👥 *Personas:* ${reserva.personas}\n💰 *Total:* $${reserva.total}\n\n¡Prepárate para vivir una experiencia increíble! 🌟`
+const mensajeWAConfirmada = (r) =>
+  `🎉 ¡Hola ${r.nombre}!\n\nTu reserva en *D'RIDE CON ALE* ha sido *CONFIRMADA* ✅\n\n📦 *Paquete:* ${r.paqueteNombre}\n📅 *Fecha:* ${r.fechaSalida || ''}\n👥 *Viajeros:* ${r.numViajeros}\n💰 *Total:* $${r.totalPagar}\n\n¡Prepárate para vivir una experiencia increíble! 🌟`
 
-const mensajeWACancelada = (reserva, motivo) =>
-  `Hola ${reserva.clienteNombre},\n\nLamentamos informarte que tu reserva para *${reserva.paqueteNombre}* del *${reserva.fecha}* ha sido cancelada.${motivo ? `\n\nMotivo: ${motivo}` : ''}\n\nSi tienes dudas, contáctanos. 🙏\n\n*D'RIDE CON ALE*`
+const mensajeWACancelada = (r, motivo) =>
+  `Hola ${r.nombre},\n\nLamentamos informarte que tu reserva para *${r.paqueteNombre}* ha sido cancelada.${motivo ? `\n\nMotivo: ${motivo}` : ''}\n\nSi tienes dudas, contáctanos. 🙏\n\n*D'RIDE CON ALE*`
 
-const obtenerReserva = async (reservaId) => {
-  const snap = await db.collection('reservas').doc(reservaId).get()
-  if (!snap.exists) return null
-  return { id: reservaId, ...snap.data() }
+// Obtiene reserva + usuario + paquete en paralelo
+const obtenerDatos = async (reservaId) => {
+  const reservaSnap = await db.collection('reservas').doc(reservaId).get()
+  if (!reservaSnap.exists) return null
+  const reserva = { id: reservaId, ...reservaSnap.data() }
+
+  const [usuarioSnap, paqueteSnap, fechaSnap] = await Promise.all([
+    reserva.usuarioId ? db.collection('usuarios').doc(reserva.usuarioId).get() : Promise.resolve(null),
+    reserva.paqueteId ? db.collection('paquetes').doc(reserva.paqueteId).get() : Promise.resolve(null),
+    reserva.fechaId   ? db.collection('fechas_paquete').doc(reserva.fechaId).get() : Promise.resolve(null),
+  ])
+
+  const usuario = usuarioSnap?.exists ? usuarioSnap.data() : {}
+  const paquete = paqueteSnap?.exists ? paqueteSnap.data() : {}
+  const fecha   = fechaSnap?.exists   ? fechaSnap.data()   : {}
+
+  return {
+    // reserva
+    id: reservaId,
+    codigo: reserva.codigo || reservaId,
+    numViajeros: reserva.numViajeros || reserva.personas || 1,
+    totalPagar: reserva.totalPagar || reserva.total || 0,
+    tipoHabitacion: reserva.tipoHabitacion || '',
+    estado: reserva.estado,
+    // usuario
+    nombre: usuario.nombre || usuario.displayName || 'Cliente',
+    email: usuario.email || '',
+    telefono: usuario.telefono || usuario.phone || '',
+    // paquete
+    paqueteNombre: paquete.nombre || reserva.paqueteNombre || '',
+    paqueteDestino: paquete.destino || '',
+    // fecha
+    fechaSalida: fecha.fecha || fecha.fechaSalida || '',
+  }
 }
 
 const guardarNotificacion = async (datos) => {
@@ -55,38 +85,25 @@ router.get('/', async (req, res) => {
 router.post('/reserva-creada', async (req, res) => {
   try {
     const { reservaId } = req.body
-    const reserva = await obtenerReserva(reservaId)
-    if (!reserva) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
+    const d = await obtenerDatos(reservaId)
+    if (!d) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
 
-    // Link WhatsApp (admin lo usa manualmente)
-    const whatsappLink = reserva.clienteTelefono
-      ? generarLinkWA(reserva.clienteTelefono, mensajeWACreada(reserva))
-      : null
+    const whatsappLink = d.telefono ? generarLinkWA(d.telefono, mensajeWACreada(d)) : null
 
-    // Email al cliente
     let emailEnviado = false
-    if (reserva.clienteEmail) {
+    if (d.email) {
       try {
         await enviarConfirmacion({
-          destinatario: reserva.clienteEmail,
-          nombre: reserva.clienteNombre,
-          reserva: { codigo: reservaId, totalPagar: reserva.total, ...reserva },
-          paquete: { nombre: reserva.paqueteNombre, destino: reserva.fecha },
+          destinatario: d.email,
+          nombre: d.nombre,
+          reserva: { codigo: d.codigo, totalPagar: d.totalPagar },
+          paquete: { nombre: d.paqueteNombre, destino: d.fechaSalida },
         })
         emailEnviado = true
-      } catch (emailErr) {
-        console.error('Error email:', emailErr.message)
-      }
+      } catch (err) { console.error('Email error:', err.message) }
     }
 
-    await guardarNotificacion({
-      tipo: 'reserva_creada',
-      reservaId,
-      clienteNombre: reserva.clienteNombre,
-      emailEnviado,
-      whatsappLink,
-    })
-
+    await guardarNotificacion({ tipo: 'reserva_creada', reservaId, clienteNombre: d.nombre, emailEnviado, whatsappLink })
     res.json({ ok: true, whatsappLink, emailEnviado })
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message })
@@ -98,36 +115,25 @@ router.post('/reserva-creada', async (req, res) => {
 router.post('/reserva-confirmada', async (req, res) => {
   try {
     const { reservaId } = req.body
-    const reserva = await obtenerReserva(reservaId)
-    if (!reserva) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
+    const d = await obtenerDatos(reservaId)
+    if (!d) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
 
-    const whatsappLink = reserva.clienteTelefono
-      ? generarLinkWA(reserva.clienteTelefono, mensajeWAConfirmada(reserva))
-      : null
+    const whatsappLink = d.telefono ? generarLinkWA(d.telefono, mensajeWAConfirmada(d)) : null
 
     let emailEnviado = false
-    if (reserva.clienteEmail) {
+    if (d.email) {
       try {
         await enviarConfirmacion({
-          destinatario: reserva.clienteEmail,
-          nombre: reserva.clienteNombre,
-          reserva: { codigo: reservaId, totalPagar: reserva.total, ...reserva },
-          paquete: { nombre: reserva.paqueteNombre, destino: reserva.fecha },
+          destinatario: d.email,
+          nombre: d.nombre,
+          reserva: { codigo: d.codigo, totalPagar: d.totalPagar },
+          paquete: { nombre: d.paqueteNombre, destino: d.fechaSalida },
         })
         emailEnviado = true
-      } catch (emailErr) {
-        console.error('Error email:', emailErr.message)
-      }
+      } catch (err) { console.error('Email error:', err.message) }
     }
 
-    await guardarNotificacion({
-      tipo: 'reserva_confirmada',
-      reservaId,
-      clienteNombre: reserva.clienteNombre,
-      emailEnviado,
-      whatsappLink,
-    })
-
+    await guardarNotificacion({ tipo: 'reserva_confirmada', reservaId, clienteNombre: d.nombre, emailEnviado, whatsappLink })
     res.json({ ok: true, whatsappLink, emailEnviado })
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message })
@@ -139,22 +145,12 @@ router.post('/reserva-confirmada', async (req, res) => {
 router.post('/reserva-cancelada', async (req, res) => {
   try {
     const { reservaId, motivo = '' } = req.body
-    const reserva = await obtenerReserva(reservaId)
-    if (!reserva) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
+    const d = await obtenerDatos(reservaId)
+    if (!d) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
 
-    const whatsappLink = reserva.clienteTelefono
-      ? generarLinkWA(reserva.clienteTelefono, mensajeWACancelada(reserva, motivo))
-      : null
+    const whatsappLink = d.telefono ? generarLinkWA(d.telefono, mensajeWACancelada(d, motivo)) : null
 
-    await guardarNotificacion({
-      tipo: 'reserva_cancelada',
-      reservaId,
-      clienteNombre: reserva.clienteNombre,
-      emailEnviado: false,
-      whatsappLink,
-      motivo,
-    })
-
+    await guardarNotificacion({ tipo: 'reserva_cancelada', reservaId, clienteNombre: d.nombre, emailEnviado: false, whatsappLink, motivo })
     res.json({ ok: true, whatsappLink })
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message })
@@ -166,19 +162,16 @@ router.post('/reserva-cancelada', async (req, res) => {
 router.get('/whatsapp-link/:reservaId/:tipo', async (req, res) => {
   try {
     const { reservaId, tipo } = req.params
-    const reserva = await obtenerReserva(reservaId)
-    if (!reserva) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
+    const d = await obtenerDatos(reservaId)
+    if (!d) return res.status(404).json({ ok: false, error: 'Reserva no encontrada' })
 
     const mensajes = {
-      creada: mensajeWACreada(reserva),
-      confirmada: mensajeWAConfirmada(reserva),
-      cancelada: mensajeWACancelada(reserva, ''),
+      creada: mensajeWACreada(d),
+      confirmada: mensajeWAConfirmada(d),
+      cancelada: mensajeWACancelada(d, ''),
     }
 
-    const whatsappLink = reserva.clienteTelefono && mensajes[tipo]
-      ? generarLinkWA(reserva.clienteTelefono, mensajes[tipo])
-      : null
-
+    const whatsappLink = d.telefono && mensajes[tipo] ? generarLinkWA(d.telefono, mensajes[tipo]) : null
     res.json({ ok: true, whatsappLink })
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message })
