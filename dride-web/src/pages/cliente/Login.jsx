@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
+import { auth } from '@/services/firebase'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -9,8 +11,10 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false)
 
   useEffect(() => {
-    const s = sessionStorage.getItem('dride_admin')
-    if (s) navigate('/admin', { replace: true })
+    const unsub = onAuthStateChanged(auth, user => {
+      if (user) navigate('/admin', { replace: true })
+    })
+    return unsub
   }, [])
 
   const handleSubmit = async (e) => {
@@ -18,17 +22,10 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      const data = await res.json()
-      if (!data.ok) { setError(data.error || 'Credenciales incorrectas'); setLoading(false); return }
-      sessionStorage.setItem('dride_admin', JSON.stringify(data.admin))
+      await signInWithEmailAndPassword(auth, form.email, form.password)
       navigate('/admin', { replace: true })
     } catch {
-      setError('No se pudo conectar con el servidor')
+      setError('Credenciales incorrectas')
       setLoading(false)
     }
   }
@@ -36,7 +33,6 @@ export default function Login() {
   return (
     <div style={{ minHeight: '100vh', background: '#0A2A1E', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ background: '#fff', borderRadius: 16, padding: '40px 32px', width: '100%', maxWidth: 400 }}>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginBottom: 28 }}>
           <div style={{ width: 40, height: 40, background: '#0A2A1E', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
@@ -57,21 +53,16 @@ export default function Login() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#444', display: 'block', marginBottom: 5 }}>Correo electrónico</label>
-            <input
-              type="email" required
-              value={form.email}
+            <input type="email" required value={form.email}
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              placeholder="admin@drideconale.com"
+              placeholder="Drideale@drideconale.com"
               style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #E5E5E3', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
-
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#444', display: 'block', marginBottom: 5 }}>Contraseña</label>
             <div style={{ position: 'relative' }}>
-              <input
-                type={showPass ? 'text' : 'password'} required
-                value={form.password}
+              <input type={showPass ? 'text' : 'password'} required value={form.password}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                 placeholder="••••••••••••"
                 style={{ width: '100%', padding: '10px 40px 10px 12px', borderRadius: 8, border: '1.5px solid #E5E5E3', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
@@ -83,18 +74,13 @@ export default function Login() {
             </div>
           </div>
 
-          {error && (
-            <div style={{ background: '#FCEBEB', border: '1px solid #F09595', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#A32D2D' }}>
-              ⚠️ {error}
-            </div>
-          )}
+          {error && <div style={{ background: '#FCEBEB', border: '1px solid #F09595', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#A32D2D' }}>⚠️ {error}</div>}
 
           <button type="submit" disabled={loading}
             style={{ background: loading ? '#5DCAA5' : '#1D9E75', color: '#fff', border: 'none', padding: 13, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4 }}>
             {loading ? 'Verificando...' : 'Ingresar al panel'}
           </button>
         </form>
-
         <p style={{ fontSize: 11, color: '#C0BDB8', textAlign: 'center', marginTop: 20 }}>D'RIDE CON ALE · Panel administrativo</p>
       </div>
     </div>
