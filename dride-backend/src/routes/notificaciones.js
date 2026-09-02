@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { db } from '../config/firebase.js'
 import { enviarConfirmacion } from '../services/email/confirmacion.js'
-import { enviarConfirmacionWA } from '../services/whatsapp/index.js'
 
 const router = Router()
 
