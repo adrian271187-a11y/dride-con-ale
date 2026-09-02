@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-
 import Dashboard      from '@/pages/admin/Dashboard'
 import Paquetes       from '@/pages/admin/Paquetes'
 import Clientes       from '@/pages/admin/Clientes'
@@ -9,47 +8,41 @@ import Pagos          from '@/pages/admin/Pagos'
 import Calendario     from '@/pages/admin/Calendario'
 import Estadisticas   from '@/pages/admin/Estadisticas'
 import Notificaciones from '@/pages/admin/Notificaciones'
-
 import Login          from '@/pages/cliente/Login'
 import Registro       from '@/pages/cliente/Registro'
 import ExploraPaquetes from '@/pages/cliente/ExploraPaquetes'
 import DetallePaquete from '@/pages/cliente/DetallePaquete'
 import MisReservas    from '@/pages/cliente/MisReservas'
 import Confirmacion   from '@/pages/cliente/Confirmacion'
-
 import AdminLayout    from '@/components/layout/AdminLayout'
 import PrivateRoute   from '@/components/layout/PrivateRoute'
 import AdminRoute     from '@/components/layout/AdminRoute'
 
 export default function App() {
   const { loading } = useAuth()
-  if (loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'#1D9E75' }}>Cargando...</div>
-
+  if (loading) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#1D9E75' }}>Cargando...</div>
   return (
     <Routes>
       <Route path="/login"    element={<Login />} />
       <Route path="/registro" element={<Registro />} />
-
       <Route element={<PrivateRoute />}>
         <Route path="/"                 element={<ExploraPaquetes />} />
         <Route path="/paquete/:id"      element={<DetallePaquete />} />
         <Route path="/mis-reservas"     element={<MisReservas />} />
         <Route path="/confirmacion/:id" element={<Confirmacion />} />
       </Route>
-
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index                        element={<Dashboard />} />
-          <Route path="paquetes"              element={<Paquetes />} />
-          <Route path="clientes"              element={<Clientes />} />
-          <Route path="reservas"              element={<Reservas />} />
-          <Route path="pagos"                 element={<Pagos />} />
-          <Route path="calendario"            element={<Calendario />} />
-          <Route path="estadisticas"          element={<Estadisticas />} />
-          <Route path="notificaciones"        element={<Notificaciones />} />
+          <Route index                 element={<Dashboard />} />
+          <Route path="paquetes"       element={<Paquetes />} />
+          <Route path="clientes"       element={<Clientes />} />
+          <Route path="reservas"       element={<Reservas />} />
+          <Route path="pagos"          element={<Pagos />} />
+          <Route path="calendario"     element={<Calendario />} />
+          <Route path="estadisticas"   element={<Estadisticas />} />
+          <Route path="notificaciones" element={<Notificaciones />} />
         </Route>
       </Route>
-
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
