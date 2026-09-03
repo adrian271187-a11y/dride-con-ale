@@ -4,12 +4,12 @@ import { getFirestore }           from 'firebase/firestore'
 import { getStorage }             from 'firebase/storage'
 
 const firebaseConfig = {
-  apiKey:            "TU_API_KEY",
-  authDomain:        "TU_PROJECT.firebaseapp.com",
-  projectId:         "TU_PROJECT_ID",
-  storageBucket:     "TU_PROJECT.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId:             "TU_APP_ID",
+  apiKey:            "AIzaSyDxFhRNY6IS9-oJf2KxcuWP6k-fZ-W6C1g",
+  authDomain:        "dride-con-ale.firebaseapp.com",
+  projectId:         "dride-con-ale",
+  storageBucket:     "dride-con-ale.firebasestorage.app",
+  messagingSenderId: "191956803622",
+  appId:             "1:191956803622:web:64c64ce4e7de77b47a46e7",
 }
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
