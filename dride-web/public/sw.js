@@ -1,4 +1,4 @@
-const CACHE = 'dride-admin-v1'
+const CACHE = 'dride-admin-v2'
 const OFFLINE = ['/']
 
 self.addEventListener('install', e => {
