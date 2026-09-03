@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc, orderBy, query } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db } from '@/services/firebase';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://dride-con-ale-production.up.railway.app';
 
