@@ -17,6 +17,10 @@ import Confirmacion   from '@/pages/cliente/Confirmacion'
 import AdminLayout    from '@/components/layout/AdminLayout'
 import PrivateRoute   from '@/components/layout/PrivateRoute'
 import AdminRoute     from '@/components/layout/AdminRoute'
+import InstallPWA from '@/components/InstallPWA'
+
+// dentro del return:
+<InstallPWA />
 
 export default function App() {
   const { loading } = useAuth()
