@@ -17,44 +17,49 @@ import Confirmacion   from '@/pages/cliente/Confirmacion'
 import AdminLayout    from '@/components/layout/AdminLayout'
 import PrivateRoute   from '@/components/layout/PrivateRoute'
 import AdminRoute     from '@/components/layout/AdminRoute'
-import InstallPWA from '@/components/InstallPWA'
-
-// dentro del return:
-<InstallPWA />
+import InstallPWA     from '@/components/InstallPWA'
 
 export default function App() {
   const { loading } = useAuth()
-  if (loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'#1D9E75' }}>Cargando...</div>
+
+  if (loading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'#1D9E75' }}>
+      Cargando...
+    </div>
+  )
 
   return (
-    <Routes>
-      {/* Públicas — sin login */}
-      <Route path="/"            element={<ExploraPaquetes />} />
-      <Route path="/paquete/:id" element={<DetallePaquete />} />
-      <Route path="/login"       element={<Login />} />
-      <Route path="/registro"    element={<Registro />} />
+    <>
+      <InstallPWA />
+      <Routes>
+        {/* Públicas — sin login */}
+        <Route path="/"            element={<ExploraPaquetes />} />
+        <Route path="/paquete/:id" element={<DetallePaquete />} />
+        <Route path="/login"       element={<Login />} />
+        <Route path="/registro"    element={<Registro />} />
 
-      {/* Cliente autenticado */}
-      <Route element={<PrivateRoute />}>
-        <Route path="/mis-reservas"     element={<MisReservas />} />
-        <Route path="/confirmacion/:id" element={<Confirmacion />} />
-      </Route>
-
-      {/* Admin */}
-      <Route element={<AdminRoute />}>
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index                 element={<Dashboard />} />
-          <Route path="paquetes"       element={<Paquetes />} />
-          <Route path="clientes"       element={<Clientes />} />
-          <Route path="reservas"       element={<Reservas />} />
-          <Route path="pagos"          element={<Pagos />} />
-          <Route path="calendario"     element={<Calendario />} />
-          <Route path="estadisticas"   element={<Estadisticas />} />
-          <Route path="notificaciones" element={<Notificaciones />} />
+        {/* Cliente autenticado */}
+        <Route element={<PrivateRoute />}>
+          <Route path="/mis-reservas"     element={<MisReservas />} />
+          <Route path="/confirmacion/:id" element={<Confirmacion />} />
         </Route>
-      </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Admin */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index                 element={<Dashboard />} />
+            <Route path="paquetes"       element={<Paquetes />} />
+            <Route path="clientes"       element={<Clientes />} />
+            <Route path="reservas"       element={<Reservas />} />
+            <Route path="pagos"          element={<Pagos />} />
+            <Route path="calendario"     element={<Calendario />} />
+            <Route path="estadisticas"   element={<Estadisticas />} />
+            <Route path="notificaciones" element={<Notificaciones />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
