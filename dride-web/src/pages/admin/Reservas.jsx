@@ -1,84 +1,172 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, orderBy, query, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
+import emailjs from '@emailjs/browser';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://dride-con-ale-production.up.railway.app';
+// ── EmailJS ──────────────────────────────────────────────
+const EMAILJS_PUBLIC_KEY  = 'WSkrfzumafc-IOCWi';
+const EMAILJS_SERVICE_ID  = 'service_ydppl8q';
+const EMAILJS_TEMPLATE_ID = 'template_ed1xlwp';
+
+// ── WhatsApp agencia ─────────────────────────────────────
+const WHATSAPP_AGENCIA = '50688887777'; // ← cambia por el número real con código de país, sin + ni espacios
 
 const estadoColores = {
-  pendiente: { bg: '#fff8e1', color: '#f57c00', label: 'Pendiente' },
+  pendiente:  { bg: '#fff8e1', color: '#f57c00', label: 'Pendiente'  },
   confirmada: { bg: '#e8f5e9', color: '#2e7d32', label: 'Confirmada' },
-  cancelada: { bg: '#ffebee', color: '#c62828', label: 'Cancelada' },
+  cancelada:  { bg: '#ffebee', color: '#c62828', label: 'Cancelada'  },
 };
 
-export default function Reservas() {
-  const [reservas, setReservas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState('todas');
-  const [procesando, setProcesando] = useState(null);
-  const [whatsappLinks, setWhatsappLinks] = useState({});
+// ── Helpers ──────────────────────────────────────────────
 
-  useEffect(() => {
-    cargarReservas();
-  }, []);
+/** Obtiene el campo `incluye` del paquete desde Firestore */
+const obtenerIncluyePaquete = async (paqueteId) => {
+  if (!paqueteId) return 'Consultar con la agencia';
+  try {
+    const snap = await getDoc(doc(db, 'paquetes', paqueteId));
+    if (snap.exists()) {
+      const data = snap.data();
+      // acepta el campo como array o string
+      const incluye = data.incluye || data.incluyePaquete || data.descripcion || '';
+      return Array.isArray(incluye) ? '• ' + incluye.join('\n• ') : incluye || 'Consultar con la agencia';
+    }
+  } catch (e) {
+    console.error('Error obteniendo paquete:', e);
+  }
+  return 'Consultar con la agencia';
+};
+
+/** Envía el correo de confirmación al cliente vía EmailJS */
+const enviarEmailConfirmacion = async (reserva, incluyePaquete) => {
+  await emailjs.send(
+    EMAILJS_SERVICE_ID,
+    EMAILJS_TEMPLATE_ID,
+    {
+      to_name:         reserva.clienteNombre,
+      to_email:        reserva.clienteEmail,
+      paquete_nombre:  reserva.paqueteNombre,
+      fecha_viaje:     reserva.fecha,
+      personas:        reserva.personas,
+      total:           reserva.total,
+      incluye_paquete: incluyePaquete,
+      reserva_id:      reserva.id,
+    },
+    EMAILJS_PUBLIC_KEY
+  );
+};
+
+/** Genera el link de WhatsApp con mensaje pre-llenado */
+const generarLinkWhatsApp = (reserva, incluyePaquete, telefono) => {
+  // Limpia el teléfono: quita +, espacios, guiones
+  const tel = telefono.replace(/[\s\-\+\(\)]/g, '');
+
+  const mensaje =
+`¡Hola ${reserva.clienteNombre}! 🌿
+
+Tu reserva con *D'RIDE CON ALE* ha sido *confirmada* ✅
+
+🧳 *Paquete:* ${reserva.paqueteNombre}
+📅 *Fecha de viaje:* ${reserva.fecha}
+👥 *Personas:* ${reserva.personas}
+💰 *Total:* $${reserva.total}
+
+✅ *¿Qué incluye tu paquete?*
+• ${incluyePaquete}
+
+Si tienes alguna pregunta, estamos para servirte. ¡Nos vemos pronto! 🚌`;
+
+  return `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`;
+};
+
+// ─────────────────────────────────────────────────────────
+
+export default function Reservas() {
+  const [reservas, setReservas]       = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [filtro, setFiltro]           = useState('todas');
+  const [procesando, setProcesando]   = useState(null);
+  const [whatsappLinks, setWhatsappLinks] = useState({});
+  const [emailEnviado, setEmailEnviado]   = useState({});
+
+  useEffect(() => { cargarReservas(); }, []);
 
   const cargarReservas = async () => {
     setLoading(true);
-    const q = query(collection(db, 'reservas'), orderBy('creadaEn', 'desc'));
+    const q    = query(collection(db, 'reservas'), orderBy('creadaEn', 'desc'));
     const snap = await getDocs(q);
     setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     setLoading(false);
   };
 
-  const cambiarEstado = async (reserva, nuevoEstado, motivo = '') => {
+  // ── Confirmar reserva ────────────────────────────────────
+  const confirmarReserva = async (reserva) => {
     setProcesando(reserva.id);
     try {
-      await updateDoc(doc(db, 'reservas', reserva.id), { estado: nuevoEstado });
+      // 1. Actualizar estado en Firestore
+      await updateDoc(doc(db, 'reservas', reserva.id), { estado: 'confirmada' });
 
-      const endpoint = nuevoEstado === 'confirmada'
-        ? '/api/notificaciones/reserva-confirmada'
-        : '/api/notificaciones/reserva-cancelada';
+      // 2. Obtener lo que incluye el paquete
+      const incluyePaquete = await obtenerIncluyePaquete(reserva.paqueteId);
 
-      const resp = await fetch(`${BACKEND}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservaId: reserva.id, motivo }),
-      });
-
-      const data = await resp.json();
-
-      if (data.whatsappLink) {
-        setWhatsappLinks(prev => ({ ...prev, [reserva.id]: data.whatsappLink }));
+      // 3. Enviar email al cliente
+      if (reserva.clienteEmail) {
+        try {
+          await enviarEmailConfirmacion(reserva, incluyePaquete);
+          setEmailEnviado(prev => ({ ...prev, [reserva.id]: true }));
+        } catch (emailErr) {
+          console.error('Error enviando email:', emailErr);
+          alert('⚠️ Reserva confirmada pero hubo un problema enviando el correo. Verifica EmailJS.');
+        }
       }
 
+      // 4. Generar link de WhatsApp
+      if (reserva.clienteTelefono) {
+        const link = generarLinkWhatsApp(reserva, incluyePaquete, reserva.clienteTelefono);
+        setWhatsappLinks(prev => ({ ...prev, [reserva.id]: link }));
+
+        // 5. Abrir WhatsApp automáticamente
+        window.open(link, '_blank');
+      }
+
+      // 6. Actualizar UI
       setReservas(prev =>
-        prev.map(r => r.id === reserva.id ? { ...r, estado: nuevoEstado } : r)
+        prev.map(r => r.id === reserva.id ? { ...r, estado: 'confirmada' } : r)
       );
     } catch (err) {
       console.error(err);
-      alert('Error al actualizar reserva');
+      alert('Error al confirmar la reserva');
     }
     setProcesando(null);
   };
 
-  const abrirWhatsApp = async (reserva) => {
-    const tipo = reserva.estado === 'confirmada' ? 'confirmada'
-      : reserva.estado === 'cancelada' ? 'cancelada' : 'creada';
+  // ── Cancelar reserva ─────────────────────────────────────
+  const cancelarReserva = async (reserva, motivo) => {
+    setProcesando(reserva.id);
+    try {
+      await updateDoc(doc(db, 'reservas', reserva.id), { estado: 'cancelada', motivo });
+      setReservas(prev =>
+        prev.map(r => r.id === reserva.id ? { ...r, estado: 'cancelada' } : r)
+      );
+    } catch (err) {
+      console.error(err);
+      alert('Error al cancelar la reserva');
+    }
+    setProcesando(null);
+  };
 
+  // ── Botón WhatsApp manual (reenvío) ─────────────────────
+  const abrirWhatsApp = async (reserva) => {
+    // Si ya tenemos el link generado, abrirlo directo
     if (whatsappLinks[reserva.id]) {
       window.open(whatsappLinks[reserva.id], '_blank');
       return;
     }
-
-    try {
-      const resp = await fetch(`${BACKEND}/api/notificaciones/whatsapp-link/${reserva.id}/${tipo}`);
-      const data = await resp.json();
-      if (data.whatsappLink) {
-        setWhatsappLinks(prev => ({ ...prev, [reserva.id]: data.whatsappLink }));
-        window.open(data.whatsappLink, '_blank');
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    // Si no, generarlo con los datos de la reserva
+    const incluyePaquete = await obtenerIncluyePaquete(reserva.paqueteId);
+    const tel = reserva.clienteTelefono || WHATSAPP_AGENCIA;
+    const link = generarLinkWhatsApp(reserva, incluyePaquete, tel);
+    setWhatsappLinks(prev => ({ ...prev, [reserva.id]: link }));
+    window.open(link, '_blank');
   };
 
   const reservasFiltradas = filtro === 'todas'
@@ -121,7 +209,7 @@ export default function Reservas() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {reservasFiltradas.map(reserva => {
-            const est = estadoColores[reserva.estado] || estadoColores.pendiente;
+            const est     = estadoColores[reserva.estado] || estadoColores.pendiente;
             const fechaStr = reserva.creadaEn?.toDate
               ? reserva.creadaEn.toDate().toLocaleDateString('es-CR')
               : '—';
@@ -170,16 +258,16 @@ export default function Reservas() {
                     <>
                       <button
                         disabled={procesando === reserva.id}
-                        onClick={() => cambiarEstado(reserva, 'confirmada')}
+                        onClick={() => confirmarReserva(reserva)}
                         style={btnStyle('#1D9E75')}
                       >
-                        ✅ Confirmar
+                        {procesando === reserva.id ? '⏳ Procesando...' : '✅ Confirmar'}
                       </button>
                       <button
                         disabled={procesando === reserva.id}
                         onClick={() => {
                           const motivo = prompt('Motivo de cancelación (opcional):') || '';
-                          cambiarEstado(reserva, 'cancelada', motivo);
+                          cancelarReserva(reserva, motivo);
                         }}
                         style={btnStyle('#e53935')}
                       >
@@ -198,12 +286,19 @@ export default function Reservas() {
                   )}
                 </div>
 
-                {/* Link WhatsApp generado */}
-                {whatsappLinks[reserva.id] && (
-                  <p style={{ marginTop: 8, fontSize: 12, color: '#1D9E75' }}>
-                    ✅ Link WhatsApp generado — se abrirá en nueva pestaña
-                  </p>
-                )}
+                {/* Confirmaciones visuales */}
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {emailEnviado[reserva.id] && (
+                    <p style={{ margin: 0, fontSize: 12, color: '#1D9E75' }}>
+                      ✉️ Correo de confirmación enviado al cliente
+                    </p>
+                  )}
+                  {whatsappLinks[reserva.id] && (
+                    <p style={{ margin: 0, fontSize: 12, color: '#25D366' }}>
+                      💬 WhatsApp abierto — puedes reenviarlo con el botón verde
+                    </p>
+                  )}
+                </div>
               </div>
             );
           })}
