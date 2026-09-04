@@ -6,7 +6,7 @@ import emailjs from '@emailjs/browser'
 
 const EMAILJS_PUBLIC_KEY   = 'WSkrfzumafc-IOCWi'
 const EMAILJS_SERVICE_ID   = 'service_pwktaba'
-const EMAILJS_TEMPLATE_ADMIN = 'template_7cd5g8i'
+const EMAILJS_TEMPLATE_ADMIN = 'template_jlrvgv7'
 
 const input = { width:'100%', padding:'9px 11px', borderRadius:8, border:'1.5px solid #E5E5E3', fontSize:13, boxSizing:'border-box', fontFamily:'Arial,sans-serif' }
 const label = { fontSize:12, fontWeight:600, color:'#444', display:'block', marginBottom:4 }
