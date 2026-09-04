@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
+import emailjs from '@emailjs/browser'
+
+const EMAILJS_PUBLIC_KEY   = 'WSkrfzumafc-IOCWi'
+const EMAILJS_SERVICE_ID   = 'service_ydppl8q'
+const EMAILJS_TEMPLATE_ADMIN = 'template_l0rpmf9'
 
 const input = { width:'100%', padding:'9px 11px', borderRadius:8, border:'1.5px solid #E5E5E3', fontSize:13, boxSizing:'border-box', fontFamily:'Arial,sans-serif' }
 const label = { fontSize:12, fontWeight:600, color:'#444', display:'block', marginBottom:4 }
@@ -15,7 +20,6 @@ export default function DetallePaquete() {
   const [form, setForm] = useState({
     fechaId:'', numViajeros:1, tipoHabitacion:'Doble estándar',
     ciudadSalida:'', atencionEspecial:false,
-    // Datos del cliente
     clienteNombre:'', clienteEmail:'', clienteTelefono:'',
     clienteWhatsapp:'', notas:'',
   })
@@ -30,11 +34,8 @@ export default function DetallePaquete() {
       ])
       if (pkgSnap.exists()) setPaquete({ id: pkgSnap.id, ...pkgSnap.data() })
       setFechas(fechasSnap.docs.map(d => ({ id: d.id, ...d.data() })))
-
-      // Pre-llenar email si hay sesión
       const user = auth.currentUser
       if (user?.email) setForm(p => ({ ...p, clienteEmail: user.email }))
-
       setLoading(false)
     }
     cargar()
@@ -56,18 +57,17 @@ export default function DetallePaquete() {
     try {
       const codigo = `RES-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
       const ref = await addDoc(collection(db, 'reservas'), {
-        usuarioId:       user.uid,
-        paqueteId:       id,
-        paqueteNombre:   paquete.nombre,
-        fechaId:         form.fechaId,
-        numViajeros:     form.numViajeros,
-        tipoHabitacion:  form.tipoHabitacion,
-        ciudadSalida:    form.ciudadSalida,
+        usuarioId:        user.uid,
+        paqueteId:        id,
+        paqueteNombre:    paquete.nombre,
+        fechaId:          form.fechaId,
+        numViajeros:      form.numViajeros,
+        tipoHabitacion:   form.tipoHabitacion,
+        ciudadSalida:     form.ciudadSalida,
         atencionEspecial: form.atencionEspecial,
-        totalPagar:      total,
-        estado:          'pendiente',
+        totalPagar:       total,
+        estado:           'pendiente',
         codigo,
-        // Datos del cliente
         clienteNombre:    form.clienteNombre,
         clienteEmail:     form.clienteEmail,
         clienteTelefono:  form.clienteTelefono,
@@ -75,6 +75,28 @@ export default function DetallePaquete() {
         notas:            form.notas,
         creadaEn:         serverTimestamp(),
       })
+
+      // Email de notificación al admin
+      try {
+        await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ADMIN,
+          {
+            codigo_reserva:  codigo,
+            cliente_nombre:  form.clienteNombre,
+            cliente_email:   form.clienteEmail,
+            cliente_telefono: form.clienteTelefono,
+            paquete_nombre:  paquete.nombre,
+            fecha_viaje:     form.fechaId,
+            personas:        form.numViajeros,
+            total:           total.toLocaleString(),
+          },
+          EMAILJS_PUBLIC_KEY
+        )
+      } catch (emailErr) {
+        console.error('Error enviando email admin:', emailErr)
+      }
+
       navigate(`/confirmacion/${ref.id}`)
     } catch { setError('Error al crear la reserva') }
     setSaving(false)
@@ -85,26 +107,23 @@ export default function DetallePaquete() {
 
   return (
     <div style={{ minHeight:'100vh', background:'#F8F8F6' }}>
-      {/* Header */}
       <div style={{ background:'#0A2A1E', padding:'16px 20px', display:'flex', alignItems:'center', gap:10 }}>
         <button onClick={() => navigate(-1)} style={{ background:'rgba(255,255,255,0.1)', border:'none', color:'#fff', padding:'6px 12px', borderRadius:8, cursor:'pointer', fontSize:13 }}>← Volver</button>
         <span style={{ color:'#fff', fontWeight:600, fontSize:14 }}>Detalle del paquete</span>
       </div>
 
-      {/* Hero */}
       <div style={{ background:'#0A2A1E', padding:'24px 20px', textAlign:'center' }}>
         <div style={{ fontSize:48, marginBottom:8 }}>✈️</div>
         <h1 style={{ color:'#fff', fontSize:20, fontWeight:700, marginBottom:4 }}>{paquete.nombre}</h1>
         <p style={{ color:'#5DCAA5', fontSize:13 }}>📍 {paquete.destino}, {paquete.pais}</p>
       </div>
 
-      {/* Stats */}
       <div style={{ padding:20, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
         {[
-          { l:'Duración',      v:`${paquete.duracionDias} días` },
-          { l:'Cupos',         v:`${paquete.cuposDisponibles}/${paquete.cupoMaximo}` },
-          { l:'Precio/persona',v:`$${(paquete.precioPorPersona||0).toLocaleString()}` },
-          { l:'Estado',        v:paquete.estado },
+          { l:'Duración',       v:`${paquete.duracionDias} días` },
+          { l:'Cupos',          v:`${paquete.cuposDisponibles}/${paquete.cupoMaximo}` },
+          { l:'Precio/persona', v:`$${(paquete.precioPorPersona||0).toLocaleString()}` },
+          { l:'Estado',         v:paquete.estado },
         ].map(({l,v}) => (
           <div key={l} style={{ background:'#fff', border:'1px solid #E5E5E3', borderRadius:10, padding:12 }}>
             <div style={{ fontSize:11, color:'#888', marginBottom:2 }}>{l}</div>
@@ -113,7 +132,6 @@ export default function DetallePaquete() {
         ))}
       </div>
 
-      {/* Incluye */}
       {paquete.incluye?.length > 0 && (
         <div style={{ margin:'0 20px 16px', background:'#fff', border:'1px solid #E5E5E3', borderRadius:12, padding:16 }}>
           <h3 style={{ fontSize:14, fontWeight:700, color:'#0A2A1E', marginBottom:10 }}>Incluye</h3>
@@ -123,11 +141,9 @@ export default function DetallePaquete() {
         </div>
       )}
 
-      {/* Formulario */}
       <form onSubmit={reservar} style={{ margin:'0 20px 40px', background:'#fff', border:'1px solid #E5E5E3', borderRadius:12, padding:20 }}>
         <h3 style={{ fontSize:15, fontWeight:700, color:'#0A2A1E', marginBottom:16 }}>Reservar</h3>
 
-        {/* ── DATOS DEL VIAJE ── */}
         <div style={{ background:'#F0FAF6', borderRadius:10, padding:14, marginBottom:16, borderLeft:'3px solid #1D9E75' }}>
           <p style={{ fontSize:12, fontWeight:700, color:'#0F6E56', margin:'0 0 12px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Detalles del viaje</p>
 
@@ -166,7 +182,6 @@ export default function DetallePaquete() {
           </div>
         </div>
 
-        {/* ── DATOS DEL CLIENTE ── */}
         <div style={{ background:'#F8F8F6', borderRadius:10, padding:14, marginBottom:16, borderLeft:'3px solid #C9A96E' }}>
           <p style={{ fontSize:12, fontWeight:700, color:'#7B5E00', margin:'0 0 12px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Tus datos de contacto</p>
 
@@ -203,7 +218,6 @@ export default function DetallePaquete() {
           </div>
         </div>
 
-        {/* ── RESUMEN ── */}
         <div style={{ background:'#F8F8F6', borderRadius:10, padding:12, marginBottom:14 }}>
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:4 }}>
             <span style={{ color:'#888' }}>Precio/persona</span>

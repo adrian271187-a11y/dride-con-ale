@@ -50,6 +50,8 @@ const enviarEmailConfirmacion = async (reserva, incluyePaquete) => {
       total:           reserva.totalPagar,
       incluye_paquete: incluyePaquete,
       reserva_id:      reserva.id,
+      codigo_reserva:  reserva.codigo,
+      pago_info:       'Para confirmar tu lugar, realiza tu pago y comunícate con nosotros por WhatsApp al +506 8888-7777 enviando tu comprobante y el código de reserva.',
     },
     EMAILJS_PUBLIC_KEY
   );
@@ -73,7 +75,15 @@ Tu reserva con *D'RIDE CON ALE* ha sido *confirmada* ✅
 ✅ *¿Qué incluye tu paquete?*
 • ${incluyePaquete}
 
-Si tienes alguna pregunta, estamos para servirte. ¡Nos vemos pronto! 🚌`;
+💳 *Método de pago:*
+Para confirmar tu lugar realiza tu pago y envíanos el comprobante por WhatsApp con tu código de reserva.
+
+Banco: Banco Industrial
+Cuenta: 123-456789-0
+A nombre de: D'RIDE CON ALE
+Referencia: ${reserva.codigo}
+
+¡Nos vemos pronto! 🚌`;
 
   return `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`;
 };
