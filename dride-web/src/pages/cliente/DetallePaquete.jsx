@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { doc, getDoc, collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
 import emailjs from '@emailjs/browser'
 
 const EMAILJS_PUBLIC_KEY   = 'WSkrfzumafc-IOCWi'
-const EMAILJS_SERVICE_ID   = 'service_ydppl8q'
+const EMAILJS_SERVICE_ID   = 'service_pwktaba'
 const EMAILJS_TEMPLATE_ADMIN = 'template_l0rpmf9'
 
 const input = { width:'100%', padding:'9px 11px', borderRadius:8, border:'1.5px solid #E5E5E3', fontSize:13, boxSizing:'border-box', fontFamily:'Arial,sans-serif' }
@@ -14,6 +14,7 @@ const label = { fontSize:12, fontWeight:600, color:'#444', display:'block', marg
 export default function DetallePaquete() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location  = useLocation()
   const [paquete, setPaquete] = useState(null)
   const [fechas, setFechas]   = useState([])
   const [loading, setLoading] = useState(true)
@@ -48,7 +49,7 @@ export default function DetallePaquete() {
     e.preventDefault()
     setError('')
     const user = auth.currentUser
-    if (!user) { navigate('/login'); return }
+    if (!user) { navigate('/login', { state: { from: location.pathname } }); return }
     if (!form.fechaId)         { setError('Selecciona una fecha de salida'); return }
     if (!form.clienteNombre)   { setError('Ingresa tu nombre completo'); return }
     if (!form.clienteEmail)    { setError('Ingresa tu correo electrónico'); return }
