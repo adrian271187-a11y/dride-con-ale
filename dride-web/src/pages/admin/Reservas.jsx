@@ -6,7 +6,7 @@ import emailjs from '@emailjs/browser';
 // ── EmailJS ──────────────────────────────────────────────
 const EMAILJS_PUBLIC_KEY  = 'WSkrfzumafc-IOCWi';
 const EMAILJS_SERVICE_ID  = 'service_pwktaba';
-const EMAILJS_TEMPLATE_ID = 'template_9zf42ug';
+const EMAILJS_TEMPLATE_ID = 'template_jlrvgv7';
 
 // ── WhatsApp agencia ─────────────────────────────────────
 const WHATSAPP_AGENCIA = '50688887777'; // ← cambia por el número real con código de país, sin + ni espacios
