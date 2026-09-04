@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 
-export default function Login() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const from      = location.state?.from || '/'
+export default function AdminLogin() {
+  const navigate = useNavigate()
   const [form, setForm]         = useState({ email: '', password: '' })
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -14,7 +12,7 @@ export default function Login() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
-      if (user) navigate(from, { replace: true })
+      if (user) navigate('/admin', { replace: true })
     })
     return unsub
   }, [])
@@ -25,7 +23,7 @@ export default function Login() {
     setLoading(true)
     try {
       await signInWithEmailAndPassword(auth, form.email, form.password)
-      navigate(from, { replace: true })
+      navigate('/admin', { replace: true })
     } catch {
       setError('Credenciales incorrectas')
       setLoading(false)
@@ -41,19 +39,19 @@ export default function Login() {
           </div>
           <div>
             <div style={{ fontSize:15, fontWeight:700, color:'#0A2A1E', letterSpacing:'0.04em' }}>D'RIDE CON ALE</div>
-            <div style={{ fontSize:9, color:'#1D9E75', letterSpacing:'0.14em' }}>AGENCIA DE VIAJES</div>
+            <div style={{ fontSize:9, color:'#1D9E75', letterSpacing:'0.14em' }}>PANEL ADMINISTRATIVO</div>
           </div>
         </div>
 
-        <h1 style={{ fontSize:20, fontWeight:700, color:'#0A2A1E', textAlign:'center', marginBottom:6 }}>Iniciar sesión</h1>
-        <p style={{ fontSize:13, color:'#888', textAlign:'center', marginBottom:24 }}>Accede a tu cuenta para ver tus reservas</p>
+        <h1 style={{ fontSize:20, fontWeight:700, color:'#0A2A1E', textAlign:'center', marginBottom:6 }}>Acceso administrador</h1>
+        <p style={{ fontSize:13, color:'#888', textAlign:'center', marginBottom:24 }}>Solo personal autorizado</p>
 
         <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div>
             <label style={{ fontSize:12, fontWeight:600, color:'#444', display:'block', marginBottom:5 }}>Correo</label>
             <input type="email" required value={form.email}
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              placeholder="tucorreo@email.com"
+              placeholder="admin@drideconale.com"
               style={{ width:'100%', padding:'10px 12px', borderRadius:8, border:'1.5px solid #E5E5E3', fontSize:14, outline:'none', boxSizing:'border-box' }} />
           </div>
           <div>
@@ -83,11 +81,6 @@ export default function Login() {
             {loading ? 'Verificando...' : 'Ingresar'}
           </button>
         </form>
-
-        <p style={{ fontSize:13, color:'#555', textAlign:'center', marginTop:20 }}>
-          ¿No tienes cuenta?{' '}
-          <Link to="/registro" style={{ color:'#1D9E75', fontWeight:600 }}>Regístrate</Link>
-        </p>
       </div>
     </div>
   )

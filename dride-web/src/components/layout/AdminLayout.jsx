@@ -83,7 +83,7 @@ export default function AdminLayout() {
         ))}
 
         <button
-          onClick={async () => { await logout(); navigate('/login', { replace:true }) }}
+          onClick={async () => { await logout(); navigate('/admin/login', { replace:true }) }}
           style={{
             marginTop:  'auto',
             background: 'transparent',

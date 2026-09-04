@@ -9,6 +9,7 @@ import Calendario     from '@/pages/admin/Calendario'
 import Estadisticas   from '@/pages/admin/Estadisticas'
 import Notificaciones from '@/pages/admin/Notificaciones'
 import Login          from '@/pages/cliente/Login'
+import AdminLogin    from '@/pages/admin/AdminLogin'
 import Registro       from '@/pages/cliente/Registro'
 import ExploraPaquetes from '@/pages/cliente/ExploraPaquetes'
 import DetallePaquete from '@/pages/cliente/DetallePaquete'
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/"            element={<ExploraPaquetes />} />
         <Route path="/paquete/:id" element={<DetallePaquete />} />
         <Route path="/login"       element={<Login />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/registro"    element={<Registro />} />
 
         {/* Cliente autenticado */}
