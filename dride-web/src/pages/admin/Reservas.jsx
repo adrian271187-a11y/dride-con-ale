@@ -45,9 +45,9 @@ const enviarEmailConfirmacion = async (reserva, incluyePaquete) => {
       to_name:         reserva.clienteNombre,
       to_email:        reserva.clienteEmail,
       paquete_nombre:  reserva.paqueteNombre,
-      fecha_viaje:     reserva.fecha,
-      personas:        reserva.personas,
-      total:           reserva.total,
+      fecha_viaje:     reserva.fechaId,
+      personas:        reserva.numViajeros,
+      total:           reserva.totalPagar,
       incluye_paquete: incluyePaquete,
       reserva_id:      reserva.id,
     },
@@ -66,9 +66,9 @@ const generarLinkWhatsApp = (reserva, incluyePaquete, telefono) => {
 Tu reserva con *D'RIDE CON ALE* ha sido *confirmada* ✅
 
 🧳 *Paquete:* ${reserva.paqueteNombre}
-📅 *Fecha de viaje:* ${reserva.fecha}
-👥 *Personas:* ${reserva.personas}
-💰 *Total:* $${reserva.total}
+📅 *Fecha de viaje:* ${reserva.fechaId}
+👥 *Personas:* ${reserva.numViajeros}
+💰 *Total:* $${reserva.totalPagar}
 
 ✅ *¿Qué incluye tu paquete?*
 • ${incluyePaquete}
@@ -231,9 +231,9 @@ export default function Reservas() {
                       📞 {reserva.clienteTelefono || '—'}
                     </p>
                     <p style={{ margin: '2px 0', color: '#555', fontSize: 14 }}>
-                      📅 Fecha viaje: {reserva.fecha} &nbsp;|&nbsp;
-                      👥 {reserva.personas} persona(s) &nbsp;|&nbsp;
-                      💰 ${reserva.total}
+                      📅 Fecha viaje: {reserva.fechaId} &nbsp;|&nbsp;
+                      👥 {reserva.numViajeros} persona(s) &nbsp;|&nbsp;
+                      💰 ${reserva.totalPagar}
                     </p>
                     <p style={{ margin: '4px 0', color: '#888', fontSize: 12 }}>
                       Creada: {fechaStr}
