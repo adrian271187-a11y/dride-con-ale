@@ -5,7 +5,7 @@ import emailjs from '@emailjs/browser';
 
 // ── EmailJS ──────────────────────────────────────────────
 const EMAILJS_PUBLIC_KEY  = 'WSkrfzumafc-IOCWi';
-const EMAILJS_SERVICE_ID  = 'service_ydppl8q';
+const EMAILJS_SERVICE_ID  = 'service_pwktaba';
 const EMAILJS_TEMPLATE_ID = 'template_ed1xlwp';
 
 // ── WhatsApp agencia ─────────────────────────────────────
